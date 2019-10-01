@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import cv2 # openCV Python interface
+import time
 
 class FilterSizeNotOddException(Exception):
     """Raised when the filter size is not odd"""
@@ -11,7 +13,9 @@ def simple_box(image, filter_size):
 
     It basically runs a filter size x filter size kernel
     through the image that calculates the average of the
-    elements"""
+    elements. The function also returns the time elapsed
+    during computation"""
+    start_time = time.time()
     if filter_size % 2 != 1:
         raise FilterSizeNotOddException
 
@@ -24,8 +28,10 @@ def simple_box(image, filter_size):
             box = image[i-offset:i+offset+1, j-offset:j+offset+1]
             result[i, j] = box.mean()
 
+
+    end_time = time.time()
     #  cutting the offset
-    return result[offset:-offset, offset:-offset]
+    return result[offset:-offset, offset:-offset], end_time-start_time
 
 
 def run_box(image, n):
@@ -34,7 +40,9 @@ def run_box(image, n):
     This algorithm also runs an nxn kernel through the image,
     but it does not calculate every value from sketch. Instead,
     it goes row by row and updates the sum by removing the values
-    of the first row and adding the values in the next row."""
+    of the first row and adding the values in the next row. The
+    function also returns the time elapsed during computation"""
+    start_time = time.time()
     if n % 2 != 1:
         raise FilterSizeNotOddException
 
@@ -57,22 +65,20 @@ def run_box(image, n):
             # add next row
             colsums += image[i+n]
 
-    return result
+    end_time = time.time()
+    return result, end_time-start_time
 
+im = cv2.imread("images/phobos.png", cv2.IMREAD_GRAYSCALE)
+res1, exec_time1 = simple_box(im,9)
+res2, exec_time2 = run_box(im,9)
 
-im = np.arange(100).reshape(10,10)
-im[8,8] = 10*88
-print(im)
-res1 = simple_box(im,3)
-res2 = run_box(im,3)
-print(res1)
-print(res2)
+print("Execution time of the simple box filter:", exec_time1, "seconds")
+print("Exeution time of the running box filter:", exec_time2, "seconds")
 
-
-img = np.random.randn(1000000).reshape(1000,1000)
-
-res1 = simple_box(img, 11)
-print(res1)
-res2 = run_box(img, 11)
-print(res2)
-print(np.isclose(res1, res2).all())
+cv2.imshow("Original Image", im)
+cv2.waitKey(0)
+cv2.imshow("Simple box result", res1.astype(np.uint8))
+cv2.waitKey(0)
+cv2.imshow("Running box result", res2.astype(np.uint8))
+cv2.waitKey(0)
+cv2.destroyAllWindows()
